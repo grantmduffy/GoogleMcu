@@ -2,6 +2,8 @@ import time
 import machine
 import network
 import esp
+import socket
+
 esp.osdebug(None)
 
 led1 = machine.Pin(2, machine.Pin.OUT)
@@ -18,6 +20,10 @@ ESSID, PASSWORD = [x.strip() for x in file.readlines()]
 file.close()
 print(ESSID, PASSWORD)
 
+file = open('home.html', 'r')
+html = file.read()
+file.close()
+
 sta_if = network.WLAN(network.STA_IF)
 ap_if = network.WLAN(network.AP_IF)
 sta_if.active(True)
@@ -30,12 +36,20 @@ while not sta_if.isconnected():
     time.sleep(0.1)
 print(' Connected')
 
+import socket
+addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
+
+s = socket.socket()
+s.bind(addr)
+s.listen(1)
+
+print('listening on', addr)
+print(sta_if.ifconfig())
+led2.off()
 while True:
-    led1.on()
-    led2.on()
-    print('ON')
-    time.sleep(0.5)
-    led1.off()
-    led2.off()
-    print('OFF')
-    time.sleep(1.0)
+    cl, addr = s.accept()
+    print('client connected from', addr)
+    request = cl.recv(1024)
+    print('Request: {}'.format(request.decode('utf-8')))
+    cl.send(bytes(html, 'utf-8'))
+    cl.close()
