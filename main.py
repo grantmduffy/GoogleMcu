@@ -24,6 +24,10 @@ file = open('home.html', 'r')
 html = file.read()
 file.close()
 
+file = open('script.js', 'r')
+js = file.read()
+file.close()
+
 sta_if = network.WLAN(network.STA_IF)
 ap_if = network.WLAN(network.AP_IF)
 sta_if.active(True)
@@ -49,7 +53,13 @@ led2.off()
 while True:
     cl, addr = s.accept()
     print('client connected from', addr)
-    request = cl.recv(1024)
-    print('Request: {}'.format(request.decode('utf-8')))
-    cl.send(bytes(html, 'utf-8'))
+    request = cl.recv(1024).decode('utf-8')
+    print('\n\n####REQUEST###\n{}'.format(request))
+    request_lines = request.split('\n')
+    request_type, request_path, _ = request_lines[0].split(' ')
+    if request_type == 'GET':
+        if request_path == '/':
+            cl.send(bytes(html, 'utf-8'))
+        if request_path == '/script.js':
+            cl.send(bytes(js, 'utf-8'))
     cl.close()
