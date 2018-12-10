@@ -3,6 +3,7 @@ import machine
 import network
 import esp
 import socket
+import json
 
 esp.osdebug(None)
 
@@ -13,6 +14,11 @@ led2.off()
 time.sleep(2)
 led1.on()
 led2.on()
+
+state = {
+    'led1': led1.value(),
+    'led2': led2.value()
+}
 
 print('Connecting...')
 file = open('wifi.txt', 'r')
@@ -54,12 +60,24 @@ while True:
     cl, addr = s.accept()
     print('client connected from', addr)
     request = cl.recv(1024).decode('utf-8')
-    print('\n\n####REQUEST###\n{}'.format(request))
-    request_lines = request.split('\n')
+    print('\n\n###REQUEST###\n{}'.format(request))
+    request_lines = request.split('\r\n')
     request_type, request_path, _ = request_lines[0].split(' ')
+    request_info = {}
+    for line in request_lines[1:]:
+        if line:
+            params = line.split(': ')
+            if len(params)> 1:
+                request_info[params[0]] = params[1]
     if request_type == 'GET':
         if request_path == '/':
             cl.send(bytes(html, 'utf-8'))
         if request_path == '/script.js':
             cl.send(bytes(js, 'utf-8'))
+        if request_path == '/state.json':
+            state['led1'] = led1.value()
+            state['led2'] = led2.value()
+            cl.send(bytes(json.dumps(state), 'utf-8'))
+    if request_type == 'POST':
+        pass
     cl.close()
